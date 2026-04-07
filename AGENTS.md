@@ -4,13 +4,12 @@
 
 ```bash
 uv sync
-cp .env.example .env  # Fill ANTHROPIC_API_KEY (required)
+cp .env.example .env  # Configure AUTONOVEL_MODEL and API endpoint
 ```
 
-Environment variables control model selection:
-- `AUTONOVEL_WRITER_MODEL` — drafting/revision (default: `claude-sonnet-4-6`)
-- `AUTONOVEL_JUDGE_MODEL` — evaluation (should differ from writer)
-- `AUTONOVEL_REVIEW_MODEL` — Phase 3b Opus review (default: `claude-opus-4-6`)
+Environment variables:
+- `AUTONOVEL_MODEL` — model name for OpenAI-compatible endpoint (default: `openai-compatible`)
+- `AUTONOVEL_API_BASE_URL` — llama.cpp server URL (default: `http://crw-amd3900x:8080`)
 
 ## Commands
 

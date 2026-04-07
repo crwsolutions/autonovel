@@ -19,33 +19,30 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
 
-JUDGE_MODEL = os.environ.get("AUTONOVEL_JUDGE_MODEL", "claude-opus-4-6")
-API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-API_BASE = os.environ.get("AUTONOVEL_API_BASE_URL", "https://api.anthropic.com")
+MODEL = os.environ.get("AUTONOVEL_MODEL", "openai-compatible")
+API_BASE = os.environ.get("AUTONOVEL_API_BASE_URL", "http://crw-amd3900x:8080")
 CHAPTERS_DIR = BASE_DIR / "chapters"
 
-def call_judge(prompt, max_tokens=4000):
+def call_judge(prompt):
     import httpx
     headers = {
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01",
         "content-type": "application/json",
     }
     payload = {
-        "model": JUDGE_MODEL,
-        "max_tokens": max_tokens,
-        "temperature": 0.2,
-        "system": (
-            "You are a literary editor comparing two chapters of the same novel. "
-            "You pick the better one. You are not allowed to call it a tie. "
-            "You quote specific passages to justify your choice. "
-            "Respond with valid JSON only."
-        ),
-        "messages": [{"role": "user", "content": prompt}],
+        "model": MODEL,
+        "messages": [
+            {"role": "system", "content": (
+                "You are a literary editor comparing two chapters of the same novel. "
+                "You pick the better one. You are not allowed to call it a tie. "
+                "You quote specific passages to justify your choice. "
+                "Respond with valid JSON only."
+            )},
+            {"role": "user", "content": prompt},
+        ],
     }
-    resp = httpx.post(f"{API_BASE}/v1/messages", headers=headers, json=payload, timeout=300)
+    resp = httpx.post(f"{API_BASE}/v1/chat/completions", headers=headers, json=payload, timeout=300)
     resp.raise_for_status()
-    return resp.json()["content"][0]["text"]
+    return resp.json()["choices"][0]["message"]["content"]
 
 def parse_json(text):
     text = text.strip()
