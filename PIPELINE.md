@@ -64,6 +64,12 @@ TOOLS (the pipeline machinery):
     typeset/novel.tex    -- LaTeX template (EB Garamond, trade paperback)
     typeset/build_tex.py -- chapters/*.md → chapters_content.tex
 
+CONFIG:
+  .env.example           -- API key template
+  pyproject.toml         -- Python dependencies (httpx, dotenv)
+  .python-version
+  .gitignore
+
   Orchestrator:
     run_pipeline.py      -- NEW: fully automated pipeline runner
 
@@ -92,10 +98,13 @@ Everything below is created automatically on a branch.
   state.json             -- current phase, scores, debts
   results.tsv            -- experiment log (every keep/discard)
   arc_summary.md         -- chapter summaries for panel evaluation
-  edit_logs/*.json       -- adversarial cuts, panel results, tournament
-  eval_logs/*.json       -- full evaluation results
-  briefs/*.md            -- revision briefs (input to gen_revision.py)
-  typeset/novel.pdf      -- typeset PDF
+   edit_logs/*.json       -- adversarial cuts, panel results, tournament
+   eval_logs/*.json       -- full evaluation results
+   briefs/*.md            -- revision briefs (input to gen_revision.py)
+   typeset/novel.pdf      -- typeset PDF
+
+CONFIG:
+   .env                   -- API keys (Anthropic only)
 ```
 
 ---
@@ -369,6 +378,8 @@ PHASE 3b: OPUS REVIEW LOOP (deep, prose-level refinement)
      - Set end-page text
   4. tectonic novel.tex → novel.pdf
   5. Git commit: "Export: [title] — [word count] words"
+
+  Optional: Build ePub (if epub_* files present)
 ```
 
 ---

@@ -68,25 +68,6 @@ uv run python gen_brief.py --auto               # Auto-generate revision brief
 uv run python gen_revision.py 5 briefs/ch05.md  # Rewrite chapter from brief
 ```
 
-### Art (requires FAL_KEY)
-```bash
-uv run python gen_art.py style                  # Derive visual style
-uv run python gen_art.py curate cover --n=6     # Generate cover variants
-uv run python gen_art.py pick cover 3           # Select variant #3
-uv run python gen_art.py ornaments-all          # Generate chapter ornaments
-uv run python gen_art.py vectorize              # Convert to SVG → PDF
-uv run python gen_cover_print.py art/cover.png --canvas-width 11.889 --canvas-height 8.75 --spine-width 0.639
-```
-
-### Audiobook (requires ELEVENLABS_API_KEY)
-```bash
-uv run python gen_audiobook_script.py           # Parse all chapters
-uv run python gen_audiobook.py --list-voices    # Browse voices
-uv run python gen_audiobook.py --test 1         # Test chapter 1
-uv run python gen_audiobook.py                  # Generate all
-uv run python gen_audiobook.py --assemble       # Concatenate
-```
-
 ### Export
 ```bash
 uv run python build_outline.py                  # Rebuild outline

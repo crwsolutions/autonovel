@@ -109,25 +109,7 @@ for n in range(1, 20):
     latex_body = md_to_latex(body)
     latex_body = make_drop_cap(latex_body)
     
-    # Check for chapter ornament (prefer vector PDF over raster PNG)
-    art_base = os.path.dirname(CHAPTERS_DIR)
-    pdf_path = os.path.join(art_base, "art", "pdf", f"ornament_ch{n:02d}.pdf")
-    png_path = os.path.join(art_base, "art", f"ornament_ch{n:02d}.png")
-    ornament_tex = ""
-    ornament_file = None
-    if os.path.exists(pdf_path):
-        ornament_file = pdf_path
-    elif os.path.exists(png_path):
-        ornament_file = png_path
-    if ornament_file:
-        ornament_tex = (
-            f"\\begin{{center}}\n"
-            f"\\includegraphics[width=0.8in]{{{ornament_file}}}\n"
-            f"\\end{{center}}\n"
-            f"\\vspace{{0.15in}}\n"
-        )
-    
-    chapters_tex.append(f"\\chapter{{{latex_escape(chapter_name)}}}\n\n{ornament_tex}{latex_body}\n")
+    chapters_tex.append(f"\\chapter{{{latex_escape(chapter_name)}}}\n\n{latex_body}\n")
     print(f"  {n:2d}. {title_line}")
 
 content = '\n\\clearpage\n\n'.join(chapters_tex)

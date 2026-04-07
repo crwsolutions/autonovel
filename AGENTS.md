@@ -4,7 +4,7 @@
 
 ```bash
 uv sync
-cp .env.example .env  # Fill ANTHROPIC_API_KEY (required), FAL_KEY (art), ELEVENLABS_API_KEY (audiobook)
+cp .env.example .env  # Fill ANTHROPIC_API_KEY (required)
 ```
 
 Environment variables control model selection:
@@ -94,5 +94,3 @@ The reviewer will always find something; stopping condition is severity, not zer
 ## External Dependencies
 
 - `tectonic` — LaTeX compiler for typesetting
-- `fal.ai` — Image generation (Nano Banana 2 for linocut covers/ornaments)
-- `ElevenLabs` — Multi-voice audiobook generation
