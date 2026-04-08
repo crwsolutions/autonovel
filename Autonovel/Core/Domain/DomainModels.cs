@@ -59,6 +59,68 @@ public record FullNovelEvaluationResult(
     string TopSuggestion
 );
 
+public record AdversarialEditResult(
+    List<EditCut> Cuts = null!,
+    int TotalCuttableWords = 0,
+    string TightestPassage = "",
+    string LoosestPassage = "",
+    double OverallFatPercentage = 0.0,
+    string OneSentenceVerdict = ""
+);
+
+public record EditCut(
+    string Quote = "",
+    string Type = "",
+    string Reason = "",
+    string Action = "",
+    string? Rewrite = null
+);
+
+public record ReaderPanelResult(
+    Dictionary<string, ReaderResponse> ReaderResponses = null!,
+    List<ReaderDisagreement> Disagreements = null!
+);
+
+public record ReaderResponse(
+    string MomentumLoss = "",
+    string EarnedEnding = "",
+    string CutCandidate = "",
+    string MissingScene = "",
+    string ThinnestCharacter = "",
+    string BestScene = "",
+    string WorstScene = "",
+    string WouldRecommend = "",
+    string HauntsYou = "",
+    string NextBook = ""
+);
+
+public record ReaderDisagreement(
+    string Question = "",
+    int Chapter = 0,
+    List<string> FlaggedBy = null!,
+    List<string> NotFlagged = null!
+);
+
+public record RevisionResult(
+    int Cycle = 0,
+    List<ChapterRevision> RevisionsApplied = null!,
+    double NovelScore = 0.0
+);
+
+public record ChapterRevision(
+    int Chapter = 0,
+    string Issue = "",
+    double PreScore = 0.0,
+    double PostScore = 0.0,
+    bool Success = false
+);
+
+public record ConsensusItem(
+    int Chapter = 0,
+    string Issue = "",
+    List<string> FlaggedBy = null!
+);
+
 public record PipelineConfig(
     int? MaxIterations = null,
     float? FoundationThreshold = null,

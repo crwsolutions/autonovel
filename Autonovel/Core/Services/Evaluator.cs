@@ -1,3 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Autonovel.Core.Domain;
 using Autonovel.Core.Prompts;
 
@@ -14,99 +21,33 @@ public class Evaluator : IEvaluator
 {
     private readonly IGenerationClient _client;
     private readonly IMechanicalSlopDetector _slopDetector;
+    private readonly JsonSerializerOptions _jsonOptions;
 
     public Evaluator(IGenerationClient client, IMechanicalSlopDetector slopDetector)
     {
         _client = client;
         _slopDetector = slopDetector;
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
     }
 
     public async Task<FoundationEvaluationResult> EvaluateFoundationAsync(string voice, string world, string characters, string outline, string canon, CancellationToken ct = default)
     {
-        // Build prompt (simplified - full prompt would be from Python)
-        var prompt = $@"""Evaluate these fantasy novel planning documents.
-
-SCORING CALIBRATION:
-9-10: Could not improve this with a month of focused editorial work.
-7-8: Strong. A skilled author could draft from this document with minimal invention.
-5-6: Functional but thin. A writer would need to invent significant material.
-3-4: Sketchy. More questions than answers.
-1-2: Placeholder or stub.
-
-VOICE DEFINITION:
-{voice}
-
-WORLD BIBLE:
-{world}
-
-CHARACTER REGISTRY:
-{characters}
-
-OUTLINE:
-{outline}
-
-CANON:
-{canon}
-
-Score these dimensions 0-10 and return JSON:
-- magic_system
-- world_history  
-- geography_and_culture
-- lore_interconnection
-- iceberg_depth
-- character_depth
-- character_distinctiveness
-- character_secrets
-- outline_completeness
-- foreshadowing_balance
-- internal_consistency
-- voice_clarity
-- canon_coverage
-
-Respond with JSON including: overall_score, lore_score, weakest_dimension, top_3_improvements.""";
-
         var promptText = EvaluationPrompts.BuildFoundationEvaluationPrompt(voice, world, characters, outline, canon);
         var response = await _client.GenerateAsync(new GenerationRequest(
             SystemPrompt: EvaluationPrompts.JudgeSystemPrompt,
             UserPrompt: promptText,
             Temperature: 0.3f), ct);
 
-        // Parse JSON (simplified)
         return ParseFoundationResult(response);
     }
 
     public async Task<ChapterEvaluationResult> EvaluateChapterAsync(string chapterText, int chapterNum, string voice, string world, string characters, string canon, string chapterOutline, string prevChapterTail, CancellationToken ct = default)
     {
-        // Mechanical slop detection
         var slopScore = _slopDetector.Calculate(chapterText);
-
-        // LLM evaluation prompt
-        var prompt = $@"""Evaluate this fantasy novel chapter.
-
-VOICE DEFINITION:
-{voice}
-
-WORLD BIBLE:
-{world}
-
-CHARACTER REGISTRY:
-{characters}
-
-CANON:
-{canon}
-
-CHAPTER OUTLINE:
-{chapterOutline}
-
-PREVIOUS CHAPTER:
-{prevChapterTail}
-
-THE CHAPTER:
-{chapterText}
-
-Score: voice_adherence, beat_coverage, character_voice, plants_seeded, prose_quality, continuity, canon_compliance, lore_integration, engagement (0-10 each).
-
-Respond with JSON including: overall_score, weakest_dimension, top_3_revisions, new_canon_entries.""";
 
         var promptText = EvaluationPrompts.BuildChapterEvaluationPrompt(voice, world, characters, canon, chapterOutline, prevChapterTail, chapterText);
         var response = await _client.GenerateAsync(new GenerationRequest(
@@ -148,7 +89,6 @@ Score: arc_completion, pacing_curve, theme_coherence, foreshadowing_resolution, 
 
 Respond with JSON including: novel_score, weakest_dimension, weakest_chapter, top_suggestion.""";
 
-        // TODO: Build full novel evaluation prompt
         var response = await _client.GenerateAsync(new GenerationRequest(
             SystemPrompt: EvaluationPrompts.JudgeSystemPrompt,
             UserPrompt: prompt,
@@ -157,45 +97,261 @@ Respond with JSON including: novel_score, weakest_dimension, weakest_chapter, to
         return ParseFullNovelResult(response);
     }
 
-    // Simplified JSON parsing - in production would use proper deserialization
-    private FoundationEvaluationResult ParseFoundationResult(string json)
+    // Helper: Extract raw JSON from LLM response (remove markdown fences, preamble)
+    private string ExtractJson(string text)
     {
-        // Placeholder - would parse actual JSON response
-        return new FoundationEvaluationResult(
-            DimensionScores: new Dictionary<string, DimensionScore>(),
-            SlopInPlanningDocs: new List<string>(),
-            ContradictionsFound: new List<string>(),
-            OverallScore: 0.0,
-            LoreScore: 0.0,
-            WeakestDimension: "",
-            Top3Improvements: new List<string>(),
-            IdentifiedGaps: new List<string>()
-        );
+        // Remove markdown fences
+        text = Regex.Replace(text, @"^\s*```json\s*\n", "", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"\n\s*```$", "", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"^\s*```\s*\n", "", RegexOptions.IgnoreCase);
+
+        // Find first { and matching }
+        var start = text.IndexOf('{');
+        if (start == -1) return "{}";
+
+        // Find matching closing brace by tracking depth
+        int depth = 0;
+        bool inString = false;
+        bool escape = false;
+
+        for (int i = start; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (escape)
+            {
+                escape = false;
+                continue;
+            }
+            if (c == '\\' && inString)
+            {
+                escape = true;
+                continue;
+            }
+            if (c == '"' && !escape)
+            {
+                inString = !inString;
+                continue;
+            }
+            if (inString) continue;
+
+            if (c == '{') depth++;
+            else if (c == '}')
+            {
+                depth--;
+                if (depth == 0) return text.Substring(start, i - start + 1);
+            }
+        }
+
+        // Fallback: return from first { to end
+        return text.Substring(start);
     }
 
-    private ChapterEvaluationResult ParseChapterResult(string json)
+    private FoundationEvaluationResult ParseFoundationResult(string response)
     {
-        return new ChapterEvaluationResult(
-            DimensionScores: new Dictionary<string, DimensionScore>(),
-            ThreeWeakestSentences: new List<string>(),
-            ThreeStrongestSentences: new List<string>(),
-            AIPatternsDetected: new List<string>(),
-            OverallScore: 0.0,
-            RawJudgeScore: 0.0,
-            WeakestDimension: "",
-            Top3Revisions: new List<string>(),
-            NewCanonEntries: new List<string>()
-        );
+        try
+        {
+            var json = ExtractJson(response);
+            var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            var dimensionScores = new Dictionary<string, DimensionScore>();
+            var dimensionFields = new[] { "magic_system", "world_history", "geography_and_culture", "lore_interconnection",
+                "iceberg_depth", "character_depth", "character_distinctiveness", "character_secrets",
+                "outline_completeness", "foreshadowing_balance", "internal_consistency", "voice_clarity", "canon_coverage" };
+
+            foreach (var field in dimensionFields)
+            {
+                if (root.TryGetProperty(field, out var dimElement))
+                {
+                    var score = dimElement.TryGetProperty("score", out var s) ? s.GetInt32() : 0;
+                    var gap = dimElement.TryGetProperty("gap", out var g) ? g.GetString() ?? "" : "";
+                    var fix = dimElement.TryGetProperty("fix", out var f) ? f.GetString() ?? "" : "";
+                    var note = dimElement.TryGetProperty("note", out var n) ? n.GetString() ?? "" : "";
+                    dimensionScores[field] = new DimensionScore(score, gap, fix, note);
+                }
+            }
+
+            var slopList = new List<string>();
+            if (root.TryGetProperty("slop_in_planning_docs", out var slopObj) && slopObj.TryGetProperty("found", out var found))
+            {
+                foreach (var item in found.EnumerateArray()) slopList.Add(item.GetString() ?? "");
+            }
+
+            var contradictions = new List<string>();
+            if (root.TryGetProperty("contradictions_found", out var contr))
+            {
+                foreach (var item in contr.EnumerateArray()) contradictions.Add(item.GetString() ?? "");
+            }
+
+            var top3 = new List<string>();
+            if (root.TryGetProperty("top_3_improvements", out var imp))
+            {
+                foreach (var item in imp.EnumerateArray()) top3.Add(item.GetString() ?? "");
+            }
+
+            return new FoundationEvaluationResult(
+                DimensionScores: dimensionScores,
+                SlopInPlanningDocs: slopList,
+                ContradictionsFound: contradictions,
+                OverallScore: root.TryGetProperty("overall_score", out var os) ? os.GetDouble() : 0.0,
+                LoreScore: root.TryGetProperty("lore_score", out var ls) ? ls.GetDouble() : 0.0,
+                WeakestDimension: root.TryGetProperty("weakest_dimension", out var wd) ? wd.GetString() ?? "" : "",
+                Top3Improvements: top3,
+                IdentifiedGaps: dimensionScores.Values.Select(d => d.Gap).Where(g => !string.IsNullOrEmpty(g)).ToList()
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to parse foundation result: {ex.Message}");
+            return new FoundationEvaluationResult(
+                DimensionScores: new Dictionary<string, DimensionScore>(),
+                SlopInPlanningDocs: new List<string>(),
+                ContradictionsFound: new List<string>(),
+                OverallScore: 0.0,
+                LoreScore: 0.0,
+                WeakestDimension: "parse_error",
+                Top3Improvements: new List<string>(),
+                IdentifiedGaps: new List<string> { $"JSON parse error: {ex.Message}" }
+            );
+        }
     }
 
-    private FullNovelEvaluationResult ParseFullNovelResult(string json)
+    private ChapterEvaluationResult ParseChapterResult(string response)
     {
-        return new FullNovelEvaluationResult(
-            DimensionScores: new Dictionary<string, DimensionScore>(),
-            NovelScore: 0.0,
-            WeakestDimension: "",
-            WeakestChapter: 0,
-            TopSuggestion: ""
-        );
+        try
+        {
+            var json = ExtractJson(response);
+            var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            var dimensionScores = new Dictionary<string, DimensionScore>();
+            var dimensionFields = new[] { "voice_adherence", "beat_coverage", "character_voice", "plants_seeded",
+                "prose_quality", "continuity", "canon_compliance", "lore_integration", "engagement" };
+
+            foreach (var field in dimensionFields)
+            {
+                if (root.TryGetProperty(field, out var dimElement))
+                {
+                    var score = dimElement.TryGetProperty("score", out var s) ? s.GetInt32() : 0;
+                    // Handle different key names for weakest moment/sentence
+                    string weakest = "";
+                    if (dimElement.TryGetProperty("weakest_moment", out var wm)) weakest = wm.GetString() ?? "";
+                    else if (dimElement.TryGetProperty("weakest_sentence", out var ws)) weakest = ws.GetString() ?? "";
+
+                    string fix = "";
+                    if (dimElement.TryGetProperty("fix", out var f)) fix = f.GetString() ?? "";
+                    else if (dimElement.TryGetProperty("rewrite_suggestion", out var rs)) fix = rs.GetString() ?? "";
+
+                    var note = dimElement.TryGetProperty("note", out var n) ? n.GetString() ?? "" : "";
+                    dimensionScores[field] = new DimensionScore(score, weakest, fix, note);
+                }
+            }
+
+            var threeWeakest = new List<string>();
+            if (root.TryGetProperty("three_weakest_sentences", out var tw))
+            {
+                foreach (var item in tw.EnumerateArray()) threeWeakest.Add(item.GetString() ?? "");
+            }
+
+            var threeStrongest = new List<string>();
+            if (root.TryGetProperty("three_strongest_sentences", out var ts))
+            {
+                foreach (var item in ts.EnumerateArray()) threeStrongest.Add(item.GetString() ?? "");
+            }
+
+            var aiPatterns = new List<string>();
+            if (root.TryGetProperty("ai_patterns_detected", out var ap))
+            {
+                foreach (var item in ap.EnumerateArray()) aiPatterns.Add(item.GetString() ?? "");
+            }
+
+            var top3Revisions = new List<string>();
+            if (root.TryGetProperty("top_3_revisions", out var tr))
+            {
+                foreach (var item in tr.EnumerateArray()) top3Revisions.Add(item.GetString() ?? "");
+            }
+
+            var newCanon = new List<string>();
+            if (root.TryGetProperty("new_canon_entries", out var nc))
+            {
+                foreach (var item in nc.EnumerateArray()) newCanon.Add(item.GetString() ?? "");
+            }
+
+            var violations = new List<string>();
+            if (root.TryGetProperty("canon_compliance", out var cc) && cc.TryGetProperty("violations", out var viol))
+            {
+                foreach (var item in viol.EnumerateArray()) violations.Add(item.GetString() ?? "");
+            }
+
+            return new ChapterEvaluationResult(
+                DimensionScores: dimensionScores,
+                ThreeWeakestSentences: threeWeakest,
+                ThreeStrongestSentences: threeStrongest,
+                AIPatternsDetected: aiPatterns,
+                OverallScore: root.TryGetProperty("overall_score", out var os) ? os.GetDouble() : 0.0,
+                RawJudgeScore: 0.0, // Set by caller after slop penalty
+                WeakestDimension: root.TryGetProperty("weakest_dimension", out var wd) ? wd.GetString() ?? "" : "",
+                Top3Revisions: top3Revisions,
+                NewCanonEntries: newCanon
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to parse chapter result: {ex.Message}");
+            return new ChapterEvaluationResult(
+                DimensionScores: new Dictionary<string, DimensionScore>(),
+                ThreeWeakestSentences: new List<string>(),
+                ThreeStrongestSentences: new List<string>(),
+                AIPatternsDetected: new List<string>(),
+                OverallScore: 0.0,
+                RawJudgeScore: 0.0,
+                WeakestDimension: "parse_error",
+                Top3Revisions: new List<string>(),
+                NewCanonEntries: new List<string>()
+            );
+        }
+    }
+
+    private FullNovelEvaluationResult ParseFullNovelResult(string response)
+    {
+        try
+        {
+            var json = ExtractJson(response);
+            var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            var dimensionScores = new Dictionary<string, DimensionScore>();
+            var dimensionFields = new[] { "arc_completion", "pacing_curve", "theme_coherence", "foreshadowing_resolution",
+                "world_consistency", "voice_consistency", "overall_engagement" };
+
+            foreach (var field in dimensionFields)
+            {
+                if (root.TryGetProperty(field, out var dimElement))
+                {
+                    var score = dimElement.TryGetProperty("score", out var s) ? s.GetInt32() : 0;
+                    var note = dimElement.TryGetProperty("note", out var n) ? n.GetString() ?? "" : "";
+                    dimensionScores[field] = new DimensionScore(score, "", "", note);
+                }
+            }
+
+            return new FullNovelEvaluationResult(
+                DimensionScores: dimensionScores,
+                NovelScore: root.TryGetProperty("novel_score", out var ns) ? ns.GetDouble() : 0.0,
+                WeakestDimension: root.TryGetProperty("weakest_dimension", out var wd) ? wd.GetString() ?? "" : "",
+                WeakestChapter: root.TryGetProperty("weakest_chapter", out var wc) ? wc.GetInt32() : 0,
+                TopSuggestion: root.TryGetProperty("top_suggestion", out var ts) ? ts.GetString() ?? "" : ""
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to parse full novel result: {ex.Message}");
+            return new FullNovelEvaluationResult(
+                DimensionScores: new Dictionary<string, DimensionScore>(),
+                NovelScore: 0.0,
+                WeakestDimension: "parse_error",
+                WeakestChapter: 0,
+                TopSuggestion: $"JSON parse error: {ex.Message}"
+            );
+        }
     }
 }

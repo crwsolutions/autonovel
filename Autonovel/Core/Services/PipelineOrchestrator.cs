@@ -25,19 +25,22 @@ namespace Autonovel.Core.Services
         private readonly IStateManager _stateManager;
         private readonly IVersionControl _vc;
         private readonly IFileManager _fileManager;
+        private readonly IRevisionEngine _revisionEngine;
 
         public PipelineOrchestrator(
             IGenerationClient client,
             IEvaluator evaluator,
             IStateManager stateManager,
             IVersionControl vc,
-            IFileManager fileManager)
+            IFileManager fileManager,
+            IRevisionEngine revisionEngine)
         {
             _client = client;
             _evaluator = evaluator;
             _stateManager = stateManager;
             _vc = vc;
             _fileManager = fileManager;
+            _revisionEngine = revisionEngine;
         }
 
         public async Task<PipelineResult> RunFoundationAsync(PipelineConfig config, CancellationToken ct = default)
@@ -223,15 +226,51 @@ namespace Autonovel.Core.Services
 
         public async Task<PipelineResult> RunRevisionAsync(int maxCycles, PipelineConfig config, CancellationToken ct = default)
         {
-            // TODO: Implement revision phase with adversarial editing
-            // This would involve:
-            // 1. Load chapter
-            // 2. Generate adversarial critique
-            // 3. Generate revision based on critique
-            // 4. Evaluate and check for improvement
-            // 5. Repeat until plateau (Δ < 0.3) or max cycles
+            var result = new PipelineResult(Phase: "revision", Success: false);
+            var maxCyclesEffective = config.RevisionMaxCycles ?? maxCycles;
+            var plateauDelta = 0.3;
+            var minCycles = 3;
+
+            Console.WriteLine($"\n{'='*60}");
+            Console.WriteLine("PHASE 3: REVISION");
+            Console.WriteLine($"{'='*60}");
+
+            var prevScore = 0.0;
             
-            return new PipelineResult(Phase: "revision", Success: false, Message: "Revision phase not yet implemented");
+            for (int cycle = 1; cycle <= maxCyclesEffective; cycle++)
+            {
+                Console.WriteLine($"\n{'='*60}");
+                Console.WriteLine($"REVISION CYCLE {cycle}/{maxCyclesEffective}");
+                Console.WriteLine($"{'='*60}");
+
+                var cycleResult = await _revisionEngine.RunRevisionCycleAsync(cycle, maxCyclesEffective, ct);
+
+                Console.WriteLine($"\nCycle {cycle} summary:");
+                Console.WriteLine($"  Revisions applied: {cycleResult.RevisionsApplied.Count}");
+                Console.WriteLine($"  Novel score: {cycleResult.NovelScore:F2}");
+
+                if (cycle >= minCycles && Math.Abs(cycleResult.NovelScore - prevScore) < plateauDelta)
+                {
+                    Console.WriteLine($"\nPlateau detected (Δ={Math.Abs(cycleResult.NovelScore - prevScore):F2} < {plateauDelta})");
+                    Console.WriteLine("Stopping revision phase.");
+                    result = result with { Success = true, Score = cycleResult.NovelScore, Message = $"Revision complete (plateau at cycle {cycle})" };
+                    break;
+                }
+
+                prevScore = cycleResult.NovelScore;
+
+                if (cycle == maxCyclesEffective)
+                {
+                    result = result with { Success = true, Score = cycleResult.NovelScore, Message = $"Revision complete (max cycles reached)" };
+                }
+            }
+
+            if (!result.Success)
+            {
+                result = result with { Message = "Revision phase failed" };
+            }
+
+            return result;
         }
 
         public async Task<PipelineResult> RunExportAsync(PipelineConfig config, CancellationToken ct = default)

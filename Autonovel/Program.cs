@@ -61,6 +61,7 @@ builder.Services.AddSingleton<IStateManager>(_ => new StateManager(Path.Combine(
 builder.Services.AddSingleton<IVersionControl>(_ => new GitVersionControl(baseDirectory));
 builder.Services.AddSingleton<IFileManager>(_ => new FileManager(baseDirectory, "chapters"));
 builder.Services.AddSingleton<IEvaluator, Evaluator>();
+builder.Services.AddSingleton<IRevisionEngine, RevisionEngine>();
 builder.Services.AddSingleton<IPipelineOrchestrator, PipelineOrchestrator>();
 var app = builder.Build();
 

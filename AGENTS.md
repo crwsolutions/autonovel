@@ -93,3 +93,17 @@ The reviewer will always find something; stopping condition is severity, not zer
 ## External Dependencies
 
 - `tectonic` — LaTeX compiler for typesetting
+
+## .NET Port Conventions
+
+**Dependency Injection:** Always use constructor injection. Never manually instantiate services with `new`.
+**Service Registration:** Register all services in `Program.cs`:
+```csharp
+builder.Services.AddSingleton<IRevisionEngine, RevisionEngine>();
+```
+
+**Command Line:** Use `dotnet run -- <command>`:
+- `dotnet run -- foundation`
+- `dotnet run -- draft 5`
+- `dotnet run -- revise --max-cycles 5`
+- `dotnet run -- export`
