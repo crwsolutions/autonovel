@@ -15,6 +15,9 @@ Console.WriteLine("  foundation              Build planning documents");
 Console.WriteLine("  draft <N>              Draft chapter N");
 Console.WriteLine("  revise [--max-cycles N] Run revision cycles");
 Console.WriteLine("  export                 Export manuscript");
+Console.WriteLine("  review                 Deep manuscript review (Opus Review Loop)");
+Console.WriteLine("  review --parse         Parse most recent review");
+Console.WriteLine("  review --output FILE   Save human-readable review");
 Console.WriteLine("  test-slop <file>       Test slop detection on file");
 Console.WriteLine();
 
@@ -63,6 +66,7 @@ builder.Services.AddSingleton<IFileManager>(_ => new FileManager(baseDirectory, 
 builder.Services.AddSingleton<IEvaluator, Evaluator>();
 builder.Services.AddSingleton<IRevisionEngine, RevisionEngine>();
 builder.Services.AddSingleton<IPipelineOrchestrator, PipelineOrchestrator>();
+
 var app = builder.Build();
 
 var orchestrator = app.Services.GetRequiredService<IPipelineOrchestrator>();
@@ -84,6 +88,8 @@ else if (command == "revise")
     return await RunRevise();
 else if (command == "export")
     return await RunExport();
+else if (command == "review")
+    return await RunReview(args.Skip(1).ToArray());
 else if (command == "test-slop" && args.Length > 1)
     return await TestSlop(args[1]);
 else
@@ -124,7 +130,37 @@ async Task<int> RunFoundation()
         return result.Success ? 0 : 1;
     }
 
-async Task<int> TestSlop(string file)
+    async Task<int> RunReview(string[] args)
+    {
+        var reviewService = new ReviewService(
+            app.Services.GetRequiredService<IGenerationClient>(),
+            app.Services.GetRequiredService<IFileManager>(),
+            baseDirectory);
+        
+        var parseMode = args.Contains("--parse");
+        var outputPath = Array.Find(args, a => a.StartsWith("--output=") || a.StartsWith("-o="))
+                        ?.Split('=')[1];
+
+        try
+        {
+            if (parseMode)
+            {
+                await reviewService.ParseLatestAsync();
+            }
+            else
+            {
+                await reviewService.ReviewAsync(outputPath);
+            }
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error: {ex.Message}");
+            return 1;
+        }
+    }
+
+ async Task<int> TestSlop(string file)
 {
     if (!File.Exists(file))
     {
