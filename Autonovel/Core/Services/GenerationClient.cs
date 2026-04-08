@@ -1,6 +1,5 @@
-using System.Net.Http;
-using System.Text.Json;
 using Autonovel.Core.Domain;
+using Microsoft.Extensions.AI;
 
 namespace Autonovel.Core.Services;
 
@@ -11,56 +10,37 @@ public interface IGenerationClient
 
 public class OpenAiGenerationClient : IGenerationClient
 {
-    private readonly HttpClient _httpClient;
-    private readonly string _endpoint;
-    private readonly string _modelId;
-    private readonly string _apiKey;
+    private readonly IChatClient _chatClient;
 
-    public OpenAiGenerationClient(HttpClient httpClient, string endpoint, string modelId, string apiKey)
+    public OpenAiGenerationClient(IChatClient chatClient)
     {
-        _httpClient = httpClient;
-        _endpoint = endpoint.TrimEnd('/');
-        _modelId = modelId;
-        _apiKey = apiKey;
+        _chatClient = chatClient;
     }
 
     public async Task<string> GenerateAsync(GenerationRequest request, CancellationToken ct = default)
     {
-        var payload = new
-        {
-            model = _modelId,
-            messages = new[]
-            {
-                new { role = "system", content = request.SystemPrompt },
-                new { role = "user", content = request.UserPrompt }
-            },
-            temperature = request.Temperature ?? 0.7,
-            max_tokens = request.MaxTokens
-        };
+        //var payload = new
+        //{
+        //    model = _modelId,
+        //    messages = new[]
+        //    {
+        //        new { role = "system", content = request.SystemPrompt },
+        //        new { role = "user", content = request.UserPrompt }
+        //    },
+        //    temperature = request.Temperature ?? 0.7,
+        //    max_tokens = request.MaxTokens
+        //};
 
-        var json = JsonSerializer.Serialize(payload);
-        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        var response = await _chatClient.GetResponseAsync(
+        [
+            new ChatMessage(ChatRole.System, request.SystemPrompt),
+            new ChatMessage(ChatRole.User, request.UserPrompt)
+        ]);
         
-        var response = await _httpClient.PostAsync($"{_endpoint}/v1/chat/completions", content, ct);
-        response.EnsureSuccessStatusCode();
-        
-        var jsonResult = await response.Content.ReadAsStringAsync(ct);
-        var result = JsonSerializer.Deserialize<CompletionResponse>(jsonResult);
-        return result?.Choices?.FirstOrDefault()?.Message?.Content ?? "";
+        return response.Messages.FirstOrDefault()?.Text ?? "";
+
+        //var jsonResult = await response.Content.ReadAsStringAsync(ct);
+        //var result = JsonSerializer.Deserialize<CompletionResponse>(jsonResult);
+        //return result?.Choices?.FirstOrDefault()?.Message?.Content ?? "";
     }
-}
-
-public class CompletionResponse
-{
-    public List<Choice>? Choices { get; set; }
-}
-
-public class Choice
-{
-    public Message? Message { get; set; }
-}
-
-public class Message
-{
-    public string? Content { get; set; }
 }

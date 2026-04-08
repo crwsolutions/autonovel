@@ -1,5 +1,3 @@
-using System.Linq;
-using System.Text.Json;
 using Autonovel.Core.Domain;
 using Autonovel.Core.Prompts;
 
@@ -16,13 +14,11 @@ public class Evaluator : IEvaluator
 {
     private readonly IGenerationClient _client;
     private readonly IMechanicalSlopDetector _slopDetector;
-    private readonly JsonSerializerOptions _jsonOptions;
 
     public Evaluator(IGenerationClient client, IMechanicalSlopDetector slopDetector)
     {
         _client = client;
         _slopDetector = slopDetector;
-        _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
     }
 
     public async Task<FoundationEvaluationResult> EvaluateFoundationAsync(string voice, string world, string characters, string outline, string canon, CancellationToken ct = default)
@@ -119,12 +115,12 @@ Respond with JSON including: overall_score, weakest_dimension, top_3_revisions, 
             Temperature: 0.3f), ct);
 
         var rawScore = ParseChapterResult(response);
-        
+
         // Apply slop penalty
         var adjustedScore = Math.Max(0, rawScore.OverallScore - slopScore.SlopPenalty);
-        
-        return rawScore with 
-        { 
+
+        return rawScore with
+        {
             OverallScore = Math.Round(adjustedScore, 2),
             RawJudgeScore = rawScore.OverallScore
         };
@@ -132,7 +128,7 @@ Respond with JSON including: overall_score, weakest_dimension, top_3_revisions, 
 
     public async Task<FullNovelEvaluationResult> EvaluateFullNovelAsync(string voice, string world, string characters, string outline, Dictionary<int, string> chapterSummaries, CancellationToken ct = default)
     {
-        var summaries = string.Join("\n", chapterSummaries.OrderBy(c => c.Key).Select(c => 
+        var summaries = string.Join("\n", chapterSummaries.OrderBy(c => c.Key).Select(c =>
         {
             var summary = c.Value.Length > 500 ? c.Value.Substring(0, 500) + "..." : c.Value;
             return $"Chapter {c.Key}: {summary}";

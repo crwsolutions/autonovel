@@ -1,8 +1,19 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.5.2.0
+# Visual Studio Version 18
+VisualStudioVersion = 18.4.11626.88 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Autonovel", "Autonovel\Autonovel.csproj", "{54858431-6C9B-157A-E9BF-7D14F43B8D43}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Items", "Items", "{4EFD340C-0F95-40FA-8639-23E97F5C510F}"
+	ProjectSection(SolutionItems) = preProject
+		canon.md = canon.md
+		characters.md = characters.md
+		CRAFT.md = CRAFT.md
+		outline.md = outline.md
+		seed.txt = seed.txt
+		voice.md = voice.md
+		world.md = world.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

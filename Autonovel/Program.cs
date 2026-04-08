@@ -1,5 +1,12 @@
 using Autonovel.Core.Domain;
 using Autonovel.Core.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using OpenAI;
+using System.ClientModel;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 Console.WriteLine("Autonovel - AI-assisted novel generation pipeline");
 Console.WriteLine("Usage: Autonovel <command> [options]");
@@ -19,6 +26,12 @@ if (args.Length == 0)
 var command = args[0];
 var baseDirectory = Directory.GetCurrentDirectory();
 
+#if DEBUG
+baseDirectory = Path.GetFullPath(Path.Combine(baseDirectory, "..", "..", "..", ".."));
+#endif
+
+var builder = Host.CreateApplicationBuilder();
+
 // Settings
 var settings = new LLMSettings
 {
@@ -28,15 +41,39 @@ var settings = new LLMSettings
     TimeoutSeconds = 600
 };
 
+builder.Services.AddChatClient(new OpenAIClient(
+                new ApiKeyCredential("dummy"), // llama.cpp requires one, value ignored
+                new OpenAIClientOptions { 
+                    Endpoint = new Uri(settings.Endpoint),
+                    NetworkTimeout = TimeSpan.FromSeconds(settings.TimeoutSeconds)
+                })
+        .GetChatClient(settings.ModelId)
+        .AsIChatClient()
+        .AsBuilder()
+            .UseFunctionInvocation()
+            .Build()
+            );
+
 // Services
-var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds) };
-var slopDetector = new MechanicalSlopDetector();
-var generationClient = new OpenAiGenerationClient(httpClient, settings.Endpoint, settings.ModelId, settings.ApiKey);
-var stateManager = new StateManager(Path.Combine(baseDirectory, "state.json"));
-var git = new GitVersionControl(baseDirectory);
-var fileManager = new FileManager(baseDirectory, "chapters");
-var evaluator = new Evaluator(generationClient, slopDetector);
-var orchestrator = new PipelineOrchestrator(generationClient, evaluator, stateManager, git, fileManager);
+builder.Services.AddSingleton<IMechanicalSlopDetector, MechanicalSlopDetector>();
+builder.Services.AddSingleton<IGenerationClient, OpenAiGenerationClient>();
+builder.Services.AddSingleton<IStateManager>(_ => new StateManager(Path.Combine(baseDirectory, "state.json")));
+builder.Services.AddSingleton<IVersionControl>(_ => new GitVersionControl(baseDirectory));
+builder.Services.AddSingleton<IFileManager>(_ => new FileManager(baseDirectory, "chapters"));
+builder.Services.AddSingleton<IEvaluator, Evaluator>();
+builder.Services.AddSingleton<IPipelineOrchestrator, PipelineOrchestrator>();
+var app = builder.Build();
+
+var orchestrator = app.Services.GetRequiredService<IPipelineOrchestrator>();
+var slopDetector = app.Services.GetRequiredService<IMechanicalSlopDetector>();
+
+//var slopDetector = new MechanicalSlopDetector();
+//var generationClient = new OpenAiGenerationClient(httpClient, settings.Endpoint, settings.ModelId, settings.ApiKey);
+//var stateManager = new StateManager(Path.Combine(baseDirectory, "state.json"));
+//var git = new GitVersionControl(baseDirectory);
+//var fileManager = new FileManager(baseDirectory, "chapters");
+//var evaluator = new Evaluator(generationClient, slopDetector);
+//var orchestrator = new PipelineOrchestrator(generationClient, evaluator, stateManager, git, fileManager);
 
 if (command == "foundation")
     return await RunFoundation();

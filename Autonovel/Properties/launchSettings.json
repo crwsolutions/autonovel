@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Autonovel": {
+      "commandName": "Project",
+      "commandLineArgs": "foundation"
+    }
+  }
+}

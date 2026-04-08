@@ -1,11 +1,15 @@
 {
   "phase": "foundation",
-  "current_focus": null,
+  "currentPhase": "foundation",
+  "currentFocus": null,
   "iteration": 0,
-  "foundation_score": 0.0,
-  "lore_score": 0.0,
-  "chapters_drafted": 0,
-  "chapters_total": 0,
-  "novel_score": 0.0,
-  "debts": []
+  "foundationScore": 0,
+  "loreScore": 0,
+  "lastScore": 0,
+  "chaptersDrafted": 0,
+  "chaptersTotal": 0,
+  "novelScore": 0,
+  "revisionCycle": 0,
+  "debts": [],
+  "propagationDebts": []
 }
