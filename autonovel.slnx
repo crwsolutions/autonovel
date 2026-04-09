@@ -1,0 +1,18 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Items/">
+    <File Path="canon.md" />
+    <File Path="characters.md" />
+    <File Path="CRAFT.md" />
+    <File Path="outline.md" />
+    <File Path="seed.txt" />
+    <File Path="voice.md" />
+    <File Path="world.md" />
+  </Folder>
+  <Project Path="src/Autonovel.Tests/Autonovel.Tests.csproj" />
+  <Project Path="src/Autonovel/Autonovel.csproj" />
+</Solution>
