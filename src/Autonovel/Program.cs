@@ -41,7 +41,7 @@ var settings = new LLMSettings
     Endpoint = "http://crw-amd3900x:8080",
     ModelId = "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q6_K",
     ApiKey = "dummy",
-    TimeoutSeconds = 600
+    TimeoutSeconds = 6000
 };
 
 builder.Services.AddChatClient(new OpenAIClient(
