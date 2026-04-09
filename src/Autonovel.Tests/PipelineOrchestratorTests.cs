@@ -19,6 +19,7 @@ public class PipelineOrchestratorTests
     private readonly Mock<IVersionControl> _mockVC;
     private readonly Mock<IFileManager> _mockFileManager;
     private readonly Mock<IRevisionEngine> _mockRevisionEngine;
+    private readonly Mock<ICanonService> _mockCanonService;
     private readonly PipelineOrchestrator _orchestrator;
     private readonly string _testDir;
 
@@ -33,13 +34,15 @@ public class PipelineOrchestratorTests
         _mockVC = new Mock<IVersionControl>();
         _mockFileManager = new Mock<IFileManager>();
         _mockRevisionEngine = new Mock<IRevisionEngine>();
+        _mockCanonService = new Mock<ICanonService>();
         _orchestrator = new PipelineOrchestrator(
             _mockClient.Object,
             _mockEvaluator.Object,
             _mockStateManager.Object,
             _mockVC.Object,
             _mockFileManager.Object,
-            _mockRevisionEngine.Object);
+            _mockRevisionEngine.Object,
+            _mockCanonService.Object);
     }
 
     [Fact]
@@ -368,7 +371,8 @@ public class PipelineOrchestratorTests
             _mockStateManager.Object,
             _mockVC.Object,
             _mockFileManager.Object,
-            _mockRevisionEngine.Object);
+            _mockRevisionEngine.Object,
+            _mockCanonService.Object);
         Assert.NotNull(orchestrator);
     }
 

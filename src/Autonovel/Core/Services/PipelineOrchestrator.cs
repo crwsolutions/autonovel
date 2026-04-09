@@ -26,6 +26,7 @@ namespace Autonovel.Core.Services
         private readonly IVersionControl _vc;
         private readonly IFileManager _fileManager;
         private readonly IRevisionEngine _revisionEngine;
+        private readonly ICanonService _canonService;
 
         public PipelineOrchestrator(
             IGenerationClient client,
@@ -33,7 +34,8 @@ namespace Autonovel.Core.Services
             IStateManager stateManager,
             IVersionControl vc,
             IFileManager fileManager,
-            IRevisionEngine revisionEngine)
+            IRevisionEngine revisionEngine,
+            ICanonService canonService)
         {
             _client = client;
             _evaluator = evaluator;
@@ -41,6 +43,7 @@ namespace Autonovel.Core.Services
             _vc = vc;
             _fileManager = fileManager;
             _revisionEngine = revisionEngine;
+            _canonService = canonService;
         }
 
         public async Task<PipelineResult> RunFoundationAsync(PipelineConfig config, CancellationToken ct = default)
@@ -94,9 +97,9 @@ namespace Autonovel.Core.Services
 
                 await _fileManager.WriteFileAsync("outline.md", outlineContent);
 
-                // Step 4: Initialize canon.md from world/characters
+                // Step 4: Initialize canon.md from world/characters using LLM
                 Console.WriteLine("Initializing canon.md...");
-                var canonContent = ExtractCanonFromFoundation(worldContent, charContent);
+                var canonContent = await _canonService.GenerateCanonAsync(seed, worldContent, charContent, ct);
                 await _fileManager.WriteFileAsync("canon.md", canonContent);
 
                 // Step 5: Evaluate
@@ -331,25 +334,7 @@ namespace Autonovel.Core.Services
             return match.Success ? match.Value : $"(Chapter {chapterNum} outline not found)";
         }
 
-        private string ExtractCanonFromFoundation(string world, string characters)
-        {
-            // Extract hard facts: names, dates, locations, rules
-            var sb = new StringBuilder();
-            sb.AppendLine("# Canon - Established Facts");
-            sb.AppendLine("\n## Magic System Rules");
-            sb.AppendLine("(Extract from world.md - Tonal Law intervals, costs, limitations)");
-            sb.AppendLine("\n## Character Facts");
-            sb.AppendLine("- Cass Bellwright: 14 years old, POV character, hears harmonic undernote");
-            sb.AppendLine("- Eddan Bellwright: Father, shaking hands, sealed journals");
-            sb.AppendLine("- Perin Bellwright: Older brother, Corda contract, missing");
-            sb.AppendLine("- Maret Corda: Antagonist, House of Corda");
-            sb.AppendLine("\n## Locations");
-            sb.AppendLine("- Cantamura: City built around natural amphitheater");
-            sb.AppendLine("- Academy: Tonal Law instruction");
-            sb.AppendLine("\n## Timeline");
-            sb.AppendLine("- Perin's contract: Recent past, catalyst for plot");
-            return sb.ToString();
-        }
+
     }
 
     // Extension method for joining strings
