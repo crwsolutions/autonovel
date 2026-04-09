@@ -30,7 +30,7 @@ var command = args[0];
 var baseDirectory = Directory.GetCurrentDirectory();
 
 #if DEBUG
-baseDirectory = Path.GetFullPath(Path.Combine(baseDirectory, "..", "..", "..", ".."));
+baseDirectory = Path.GetFullPath(Path.Combine(baseDirectory, "..", "..", "..", "..", ".."));
 #endif
 
 var builder = Host.CreateApplicationBuilder();
