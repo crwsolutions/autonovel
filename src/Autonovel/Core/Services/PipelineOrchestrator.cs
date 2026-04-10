@@ -115,30 +115,30 @@ namespace Autonovel.Core.Services
 
                 if (shouldKeep)
                 {
-                    // Commit and proceed
-                    var commitMsg = $"Foundation iteration {iteration}: {evalResult.OverallScore:F2} overall, {evalResult.LoreScore:F2} lore";
-                    await _vc.CommitAsync(new[] { "world.md", "characters.md", "outline.md", "canon.md" }, commitMsg);
-                    
-                    await _stateManager.UpdateStateAsync(s => s with 
-                    { 
-                        CurrentPhase = "drafting",
-                        Iteration = 0,
-                        LastScore = evalResult.OverallScore,
-                        PropagationDebts = new List<string>()
-                    });
-
-                    result = result with { Success = true, Score = evalResult.OverallScore, Message = $"Foundation passed (score: {evalResult.OverallScore:F2})" };
+                    result = await CommitAndProceedAsync(evalResult, iteration, "(passed thresholds)");
                     break;
                 }
                 else
                 {
-                    // Hard reset and retry
-                    Console.WriteLine($"Discarding iteration {iteration} (below threshold: {foundationThreshold}/{loreThreshold})");
-                    await _vc.HardResetAsync();
+                    Console.WriteLine($"Iteration {iteration} below threshold: {foundationThreshold}/{loreThreshold}");
+                    Console.Write("Do you want to retry? (Y/N): ");
+                    var response = Console.ReadLine()?.Trim().ToUpper();
                     
-                    // Add fixes to prompt for next iteration
-                    var improvements = string.Join("\n", evalResult.Top3Improvements.Take(2));
-                    // Note: In full implementation, we'd modify the prompts to include these as constraints
+                    if (response == "N")
+                    {
+                        result = await CommitAndProceedAsync(evalResult, iteration, "(user proceeded)");
+                        break;
+                    }
+                    else
+                    {
+                        // Hard reset and retry
+                        Console.WriteLine($"Discarding iteration {iteration} (below threshold: {foundationThreshold}/{loreThreshold})");
+                        await _vc.HardResetAsync();
+                        
+                        // Add fixes to prompt for next iteration
+                        var improvements = string.Join("\n", evalResult.Top3Improvements.Take(2));
+                        // Note: In full implementation, we'd modify the prompts to include these as constraints
+                    }
                 }
             }
 
@@ -316,6 +316,27 @@ namespace Autonovel.Core.Services
         }
 
         // Helper methods
+        private async Task<PipelineResult> CommitAndProceedAsync(FoundationEvaluationResult evalResult, int iteration, string reason)
+        {
+            var commitMsg = $"Foundation iteration {iteration}: {evalResult.OverallScore:F2} overall, {evalResult.LoreScore:F2} {reason}";
+            await _vc.CommitAsync(["world.md", "characters.md", "outline.md", "canon.md"], commitMsg);
+            
+            await _stateManager.UpdateStateAsync(s => s with 
+            { 
+                CurrentPhase = "drafting",
+                Iteration = 0,
+                LastScore = evalResult.OverallScore,
+                PropagationDebts = []
+            });
+
+            return new PipelineResult(
+                Phase: "foundation", 
+                Success: true, 
+                Score: evalResult.OverallScore,
+                Message: $"Foundation passed (score: {evalResult.OverallScore:F2})"
+            );
+        }
+
         private string ExtractVoicePart2(string voice) =>
             voice.Split('\n')
                 .SkipWhile(l => !l.Contains("Part 2"))
