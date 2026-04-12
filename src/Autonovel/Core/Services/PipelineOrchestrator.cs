@@ -74,6 +74,11 @@ namespace Autonovel.Core.Services
                     UserPrompt: worldPrompt,
                     Temperature: 0.7f), ct);
 
+                if (string.IsNullOrWhiteSpace(worldContent))
+                {
+                    throw new Exception("LLM returned empty response for world.md. Check API connectivity.");
+                }
+
                 await _fileManager.WriteFileAsync("world.md", worldContent);
 
                 // Step 2: Generate characters.md
@@ -83,6 +88,11 @@ namespace Autonovel.Core.Services
                     SystemPrompt: FoundationPrompts.CharacterSystemPrompt,
                     UserPrompt: charPrompt,
                     Temperature: 0.7f), ct);
+
+                if (string.IsNullOrWhiteSpace(charContent))
+                {
+                    throw new Exception("LLM returned empty response for characters.md. Check API connectivity.");
+                }
 
                 await _fileManager.WriteFileAsync("characters.md", charContent);
 
@@ -95,11 +105,22 @@ namespace Autonovel.Core.Services
                     UserPrompt: outlinePrompt,
                     Temperature: 0.7f), ct);
 
+                if (string.IsNullOrWhiteSpace(outlineContent))
+                {
+                    throw new Exception("LLM returned empty response for outline.md. Check API connectivity.");
+                }
+
                 await _fileManager.WriteFileAsync("outline.md", outlineContent);
 
                 // Step 4: Initialize canon.md from world/characters using LLM
                 Console.WriteLine("Initializing canon.md...");
                 var canonContent = await _canonService.GenerateCanonAsync(seed, worldContent, charContent, ct);
+                
+                if (string.IsNullOrWhiteSpace(canonContent))
+                {
+                    throw new Exception("LLM returned empty response for canon.md. Check API connectivity.");
+                }
+                
                 await _fileManager.WriteFileAsync("canon.md", canonContent);
 
                 // Step 5: Evaluate
@@ -183,6 +204,11 @@ namespace Autonovel.Core.Services
                     UserPrompt: prompt,
                     Temperature: 0.7f), ct);
 
+                if (string.IsNullOrWhiteSpace(chapterContent))
+                {
+                    throw new Exception($"LLM returned empty response for chapter {chapterNum}. Check API connectivity.");
+                }
+
                 await _fileManager.WriteFileAsync($"chapters/ch_{chapterNum:02d}.md", chapterContent);
 
                 // Evaluate
@@ -191,10 +217,25 @@ namespace Autonovel.Core.Services
 
                 Console.WriteLine($"  Score: {evalResult.OverallScore:F2} (raw: {evalResult.RawJudgeScore:F2}, slop penalty: {evalResult.RawJudgeScore - evalResult.OverallScore:F2})");
                 Console.WriteLine($"  Word count: {chapterContent.Split().Length}");
+                Console.WriteLine($"  Threshold: {draftThreshold}");
 
-                // Keep/discard
-                if (evalResult.OverallScore >= draftThreshold)
+                // User input for keep/discard/retry
+                var decision = await GetUserDecisionAsync(evalResult.OverallScore, draftThreshold, $"Chapter {chapterNum}");
+                
+                if (decision == 'n')
                 {
+                    // User cancelled
+                    result = result with { Message = $"User cancelled chapter {chapterNum} (score: {evalResult.OverallScore:F2})" };
+                    return result;
+                }
+                else if (decision == 'y')
+                {
+                    // User kept (possibly with warning)
+                    if (evalResult.OverallScore < draftThreshold)
+                    {
+                        Console.WriteLine($"  Warning: Keeping chapter {chapterNum} below threshold ({evalResult.OverallScore:F2} < {draftThreshold})");
+                    }
+                    
                     // Commit
                     var commitMsg = $"Chapter {chapterNum}: {evalResult.OverallScore:F2} (attempt {attempt})";
                     await _vc.CommitAsync(new[] { $"chapters/ch_{chapterNum:02d}.md" }, commitMsg);
@@ -213,8 +254,8 @@ namespace Autonovel.Core.Services
                 }
                 else
                 {
-                    // Discard and retry
-                    Console.WriteLine($"Discarding (below threshold: {draftThreshold})");
+                    // Retry (r or default)
+                    Console.WriteLine($"Discarding attempt {attempt}, retrying...");
                     await _vc.HardResetAsync();
                 }
             }
@@ -355,7 +396,42 @@ namespace Autonovel.Core.Services
             return match.Success ? match.Value : $"(Chapter {chapterNum} outline not found)";
         }
 
-
+        private async Task<char> GetUserDecisionAsync(double score, double threshold, string context)
+        {
+            var autoKeep = score >= threshold;
+            var defaultChoice = autoKeep ? 'y' : 'r';
+            var prompt = autoKeep 
+                ? $"[y/keep, n/cancel, r/retry], default=y" 
+                : $"[y/keep, n/cancel, r/retry], default=r";
+            
+            while (true)
+            {
+                Console.Write($"  {context} {prompt}: ");
+                var input = Console.ReadLine()?.Trim().ToLower();
+                
+                if (string.IsNullOrEmpty(input))
+                {
+                    return defaultChoice;
+                }
+                
+                if (input == "y" || input == "keep")
+                {
+                    return 'y';
+                }
+                else if (input == "n" || input == "cancel")
+                {
+                    return 'n';
+                }
+                else if (input == "r" || input == "retry")
+                {
+                    return 'r';
+                }
+                else
+                {
+                    Console.WriteLine("  Invalid input. Enter y, n, or r.");
+                }
+            }
+        }
     }
 
     // Extension method for joining strings
