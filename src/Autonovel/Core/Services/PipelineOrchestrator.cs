@@ -239,15 +239,27 @@ namespace Autonovel.Core.Services
                     
                     // Commit
                     var commitMsg = $"Chapter {chapterNum}: {evalResult.OverallScore:F2} (attempt {attempt})";
-                    await _vc.CommitAsync(new[] { $"chapters/ch_{chapterNum:02d}.md" }, commitMsg);
+                    var confirmed = await _vc.ConfirmCommitAsync(commitMsg);
+                    if (!confirmed)
+                    {
+                        result = result with { Message = $"User cancelled commit for chapter {chapterNum}" };
+                        return result;
+                    }
+                    await _vc.CommitAsync(new[] { $"workspace/chapters/ch_{chapterNum:02d}.md" }, commitMsg);
 
                     // Update canon with new entries
                     if (evalResult.NewCanonEntries.Any())
                     {
                         var newCanon = canon + "\n\n## Added in Chapter " + chapterNum + "\n" + 
                                      string.Join("\n", evalResult.NewCanonEntries.Select(e => $"- {e}"));
-                        await _fileManager.WriteFileAsync("canon.md", newCanon);
-                        await _vc.CommitAsync(new[] { "canon.md" }, $"Update canon from chapter {chapterNum}");
+                        await _fileManager.WriteFileAsync("workspace/canon.md", newCanon);
+                        var canonConfirmed = await _vc.ConfirmCommitAsync($"Update canon from chapter {chapterNum}");
+                        if (!canonConfirmed)
+                        {
+                            result = result with { Message = $"User cancelled canon update for chapter {chapterNum}" };
+                            return result;
+                        }
+                        await _vc.CommitAsync(new[] { "workspace/canon.md" }, $"Update canon from chapter {chapterNum}");
                     }
 
                     result = result with { Success = true, Score = evalResult.OverallScore, Message = $"Chapter {chapterNum} drafted (score: {evalResult.OverallScore:F2})" };
@@ -345,7 +357,13 @@ namespace Autonovel.Core.Services
                 await _fileManager.WriteFileAsync("manuscript.md", sb.ToString());
                 
                 // Commit
-                await _vc.CommitAsync(new[] { "manuscript.md" }, "Export manuscript");
+                var confirmed = await _vc.ConfirmCommitAsync("Export manuscript");
+                if (!confirmed)
+                {
+                    result = result with { Message = "User cancelled manuscript export commit" };
+                    return result;
+                }
+                await _vc.CommitAsync(new[] { "workspace/manuscript.md" }, "Export manuscript");
 
                 result = result with { Success = true, Message = $"Exported {chapters.Count()} chapters to manuscript.md" };
             }
@@ -361,7 +379,13 @@ namespace Autonovel.Core.Services
         private async Task<PipelineResult> CommitAndProceedAsync(FoundationEvaluationResult evalResult, int iteration, string reason)
         {
             var commitMsg = $"Foundation iteration {iteration}: {evalResult.OverallScore:F2} overall, {evalResult.LoreScore:F2} {reason}";
-            await _vc.CommitAsync(["world.md", "characters.md", "outline.md", "canon.md"], commitMsg);
+            var files = new[] { "workspace/world.md", "workspace/characters.md", "workspace/outline.md", "workspace/canon.md" };
+            var confirmed = await _vc.ConfirmCommitAsync(commitMsg);
+            if (!confirmed)
+            {
+                throw new OperationCanceledException("User cancelled commit.");
+            }
+            await _vc.CommitAsync(files, commitMsg);
             
             await _stateManager.UpdateStateAsync(s => s with 
             { 

@@ -4,6 +4,7 @@ namespace Autonovel.Core.Services;
 
 public interface IVersionControl
 {
+    Task<bool> ConfirmCommitAsync(string message, CancellationToken ct = default);
     Task<string> CommitAsync(string message, CancellationToken ct = default);
     Task CommitAsync(string[] files, string message, CancellationToken ct = default);
     Task ResetHardAsync(string target, CancellationToken ct = default);
@@ -24,6 +25,13 @@ public class GitVersionControl : IVersionControl
     public async Task AddAllAsync(CancellationToken ct = default)
     {
         await RunGitAsync(["add", "-A"], ct);
+    }
+
+    public async Task<bool> ConfirmCommitAsync(string message, CancellationToken ct = default)
+    {
+        Console.Write($"Commit: {message}\nDo you want to proceed? (Y/N): ");
+        var response = Console.ReadLine()?.Trim().ToUpper();
+        return response != "N";
     }
 
     public async Task<string> CommitAsync(string message, CancellationToken ct = default)

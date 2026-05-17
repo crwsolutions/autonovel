@@ -256,7 +256,14 @@ Rewrite the chapter now. Output only the revised chapter text, no commentary."""
                     Temperature: 0.7f), ct);
 
                 await _fileManager.WriteFileAsync(chapterPath, revision);
-                await _vc.CommitAsync(new[] { chapterPath }, $"Revision cycle {cycle}: Fix {issue.Issue} in Ch {issue.Chapter}");
+                var commitMsg = $"Revision cycle {cycle}: Fix {issue.Issue} in Ch {issue.Chapter}";
+                var confirmed = await _vc.ConfirmCommitAsync(commitMsg);
+                if (!confirmed)
+                {
+                    Console.Error.WriteLine($"  User cancelled commit for chapter {issue.Chapter}");
+                    return false;
+                }
+                await _vc.CommitAsync(new[] { $"workspace/{chapterPath}" }, commitMsg);
 
                 return true;
             }
