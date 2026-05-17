@@ -28,6 +28,7 @@ public class FileManager : IFileManager
 
     public string ReadFile(string relativePath)
     {
+        Console.WriteLine($"Reading file: {relativePath}");
         var fullPath = Path.Combine(_baseDirectory, relativePath);
         try
         {
@@ -41,6 +42,7 @@ public class FileManager : IFileManager
 
     public void WriteFile(string relativePath, string content)
     {
+        Console.WriteLine($"Writing file: {relativePath}");
         var fullPath = Path.Combine(_baseDirectory, relativePath);
         var directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory))
@@ -59,7 +61,7 @@ public class FileManager : IFileManager
         return Directory.GetFiles(_chaptersDirectory, "ch_*.md")
             .Select(Path.GetFileName)
             .OrderBy(n => n)
-            .ToList();
+            .ToList()!;
     }
 
     public string ReadChapter(int chapterNum) => 

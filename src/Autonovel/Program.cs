@@ -25,11 +25,36 @@ if (args.Length == 0)
 }
 
 var command = args[0];
-var baseDirectory = Directory.GetCurrentDirectory();
 
-#if DEBUG
-baseDirectory = Path.GetFullPath(Path.Combine(baseDirectory, "..", "..", "..", ".."));
-#endif
+// Find workspace directory by walking up the directory tree (max 5 levels)
+string workspaceDirectory = FindWorkspaceDirectory();
+string repoRootDirectory = Directory.GetParent(workspaceDirectory)!.FullName;
+
+Console.WriteLine($"Workspace directory: {workspaceDirectory}");
+Console.WriteLine($"Repo root directory: {repoRootDirectory}");
+
+static string FindWorkspaceDirectory()
+{
+    string current = AppDomain.CurrentDomain.BaseDirectory;
+    Console.WriteLine($"Searching from: {current}");
+
+    for (int i = 0; i < 7; i++)
+    {
+        var workspacePath = Path.Combine(current, "workspace");
+        if (Directory.Exists(workspacePath))
+        {
+            return workspacePath;
+        }
+
+        var parent = Directory.GetParent(current);
+        if (parent == null) break;
+        current = parent.FullName;
+    }
+
+    throw new DirectoryNotFoundException(
+        "Could not find 'workspace/' folder within 5 parent directories. " +
+        "Ensure the app is running from within the autonovel repository.");
+}
 
 var builder = Host.CreateApplicationBuilder();
 
@@ -58,9 +83,9 @@ builder.Services.AddChatClient(new OpenAIClient(
 // Services
 builder.Services.AddSingleton<IMechanicalSlopDetector, MechanicalSlopDetector>();
 builder.Services.AddSingleton<IGenerationClient, OpenAiGenerationClient>();
-builder.Services.AddSingleton<IStateManager>(_ => new StateManager(Path.Combine(baseDirectory, "state.json")));
-builder.Services.AddSingleton<IVersionControl>(_ => new GitVersionControl(baseDirectory));
-builder.Services.AddSingleton<IFileManager>(_ => new FileManager(baseDirectory, "chapters"));
+builder.Services.AddSingleton<IStateManager>(_ => new StateManager(Path.Combine(workspaceDirectory, "state.json")));
+builder.Services.AddSingleton<IVersionControl>(_ => new GitVersionControl(repoRootDirectory));
+builder.Services.AddSingleton<IFileManager>(_ => new FileManager(workspaceDirectory, "chapters"));
 builder.Services.AddSingleton<IEvaluator, Evaluator>();
 builder.Services.AddSingleton<IRevisionEngine, RevisionEngine>();
 builder.Services.AddSingleton<ICanonService, CanonService>();
@@ -134,7 +159,7 @@ async Task<int> RunFoundation()
         var reviewService = new ReviewService(
             app.Services.GetRequiredService<IGenerationClient>(),
             app.Services.GetRequiredService<IFileManager>(),
-            baseDirectory);
+            workspaceDirectory);
         
         var parseMode = args.Contains("--parse");
         var outputPath = Array.Find(args, a => a.StartsWith("--output=") || a.StartsWith("-o="))
