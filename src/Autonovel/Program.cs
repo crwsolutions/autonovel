@@ -5,8 +5,6 @@ using Microsoft.Extensions.Hosting;
 using OpenAI;
 using System.ClientModel;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 Console.WriteLine("Autonovel - AI-assisted novel generation pipeline");
 Console.WriteLine("Usage: Autonovel <command> [options]");

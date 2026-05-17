@@ -202,7 +202,8 @@ namespace Autonovel.Core.Services
                 var chapterContent = await _client.GenerateAsync(new GenerationRequest(
                     SystemPrompt: ChapterPrompts.DraftSystemPrompt,
                     UserPrompt: prompt,
-                    Temperature: 0.7f), ct);
+                    Temperature: 0.7f,
+                    MaxTokens: 5000), ct);
 
                 if (string.IsNullOrWhiteSpace(chapterContent))
                 {
@@ -331,7 +332,7 @@ namespace Autonovel.Core.Services
                 }
 
                 var sb = new StringBuilder();
-                sb.AppendLine("# The Second Son of the House of Bells\n");
+                sb.AppendLine("# Novel Manuscript\n");
 
                 foreach (var chapterNum in chapters.OrderBy(c => c))
                 {

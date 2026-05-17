@@ -56,8 +56,8 @@ public class CanonService : ICanonService
         sb.AppendLine("- Dated events, ages, durations");
         sb.AppendLine();
         sb.AppendLine("## Magic System Rules");
-        sb.AppendLine("- Hard rules of Tonal Law (intervals, costs, limitations)");
-        sb.AppendLine("- Cass's gift specifics");
+        sb.AppendLine("- Hard rules of the magic system (costs, limitations)");
+        sb.AppendLine("- Protagonist's gift/special ability specifics");
         sb.AppendLine();
         sb.AppendLine("## Character Facts");
         sb.AppendLine("- Ages, physical descriptions, habits, relationships");
@@ -71,7 +71,7 @@ public class CanonService : ICanonService
         sb.AppendLine();
         sb.AppendLine("## Established In-Story");
         sb.AppendLine("- Events that have already happened in the story's past");
-        sb.AppendLine("- The Perin contract, the Expansion Wars, etc.");
+        sb.AppendLine("- Key contracts, historical wars, etc.");
         sb.AppendLine();
         sb.AppendLine("RULES:");
         sb.AppendLine("- One fact per bullet point. Short. Specific. Checkable.");

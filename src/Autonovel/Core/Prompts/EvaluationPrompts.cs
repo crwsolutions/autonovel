@@ -57,7 +57,7 @@ namespace Autonovel.Core.Prompts
             sb.AppendLine("     share the same sentence structures");
             sb.AppendLine("2. Check for missing NEGATIVE SPACE -- what's absent?");
             sb.AppendLine("   - Are there gaps in the magic system that would block a specific");
-            sb.AppendLine("     plot scene? (e.g., can Cass hear lies in written documents?");
+            sb.AppendLine("     plot scene? (e.g., can the protagonist hear lies in written documents?");
             sb.AppendLine("     What happens during the climax -- what rule resolves it?)");
             sb.AppendLine("   - Are there characters needed for the plot who don't exist?");
             sb.AppendLine("   - Are there scenes the outline demands that the world can't support?");
@@ -265,7 +265,7 @@ namespace Autonovel.Core.Prompts
             sb.AppendLine();
             sb.AppendLine("- character_voice: Remove all dialogue tags mentally. Can you tell who's");
             sb.AppendLine("  speaking? Do characters ever sound alike? Does dialogue read as speech");
-            sb.AppendLine("  or as written prose? Does Cass sound like a specific 14-year-old, or");
+            sb.AppendLine("  or as written prose? Does the protagonist sound like a specific 14-year-old, or");
             sb.AppendLine("  like \"young protagonist\"? Does anyone say something surprising -- not");
             sb.AppendLine("  just the right thing, but a REAL thing? Characters who never stumble,");
             sb.AppendLine("  hesitate, or say something slightly wrong are AI-pattern characters.");
@@ -276,7 +276,7 @@ namespace Autonovel.Core.Prompts
             sb.AppendLine();
             sb.AppendLine("- prose_quality: Sentence variety (measure: do 3+ consecutive sentences");
             sb.AppendLine("  start the same way?). Specificity (concrete nouns > abstract).");
-            sb.AppendLine("  Metaphors from Cass's experience, not from a thesaurus. Show-don't-tell");
+            sb.AppendLine("  Metaphors from the protagonist's experience, not from a thesaurus. Show-don't-tell");
             sb.AppendLine("  at emotional peaks. QUOTE the weakest sentence and explain why. Also");
             sb.AppendLine("  check for: repeated phrases, leaned-on constructions, paragraphs that");
             sb.AppendLine("  could be cut without loss.");
@@ -398,7 +398,7 @@ namespace Autonovel.Core.Prompts
             sb.AppendLine("Respond with JSON:");
             sb.AppendLine("{");
             sb.AppendLine("  \"momentum_loss\": \"Where does the story lose momentum? Name the specific chapter(s) and what causes the drag. If it never loses momentum, say so and explain why.\",");
-            sb.AppendLine("  \"earned_ending\": \"Does the ending feel earned by everything before it? Does Cass's choice in Ch 22 land? Does the final image in Ch 24 mirror Ch 1 in a way that satisfies? What, if anything, feels unearned?\",");
+            sb.AppendLine("  \"earned_ending\": \"Does the ending feel earned by everything before it? Does the protagonist's choice in the climax land? Does the final image mirror the opening in a way that satisfies? What, if anything, feels unearned?\",");
             sb.AppendLine("  \"cut_candidate\": \"If the novel had to be 10% shorter (~7,000 words), which chapter or section would you cut first? Why? What would be lost?\",");
             sb.AppendLine("  \"missing_scene\": \"Is there a scene the novel NEEDS that it doesn't have? A conversation that should happen, a moment that's earned but never delivered, a character who deserves more page time? Be specific about where it would go.\",");
             sb.AppendLine("  \"thinnest_character\": \"Which character feels thinnest by the end? Who do you want to know more about? Who could be cut without the novel suffering?\",");

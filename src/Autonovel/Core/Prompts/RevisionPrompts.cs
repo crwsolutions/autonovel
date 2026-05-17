@@ -73,7 +73,7 @@ namespace Autonovel.Core.Prompts
             sb.AppendLine("Respond with JSON:");
             sb.AppendLine("{");
             sb.AppendLine("  \"momentum_loss\": \"Where does the story lose momentum? Name the specific chapter(s) and what causes the drag. If it never loses momentum, say so and explain why.\",");
-            sb.AppendLine("  \"earned_ending\": \"Does the ending feel earned by everything before it? Does Cass's choice in Ch 22 land? Does the final image in Ch 24 mirror Ch 1 in a way that satisfies? What, if anything, feels unearned?\",");
+            sb.AppendLine("  \"earned_ending\": \"Does the ending feel earned by everything before it? Does the protagonist's choice in the climax land? Does the final image mirror the opening in a way that satisfies? What, if anything, feels unearned?\",");
             sb.AppendLine("  \"cut_candidate\": \"If the novel had to be 10% shorter (~7,000 words), which chapter or section would you cut first? Why? What would be lost?\",");
             sb.AppendLine("  \"missing_scene\": \"Is there a scene the novel NEEDS that it doesn't have? A conversation that should happen, a moment that's earned but never delivered, a character who deserves more page time? Be specific about where it would go.\",");
             sb.AppendLine("  \"thinnest_character\": \"Which character feels thinnest by the end? Who do you want to know more about? Who could be cut without the novel suffering?\",");

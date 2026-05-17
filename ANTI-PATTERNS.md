@@ -118,7 +118,7 @@ beat that interrupts another beat.
 ## 9. REPETITIVE CHAPTER ENDINGS
 
 AI finds a closing pattern and reuses it. In this novel: 4 chapters
-ended with "Cass outside, listening to his father work."
+ended with "the protagonist outside, listening to their parent work."
 
 **Rule:** No two chapters end with the same structural move. Each
 ending belongs to THAT chapter specifically.

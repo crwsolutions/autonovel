@@ -411,3 +411,5 @@ FodyWeavers.xsd
 src/CalcApi.Core/commands.txt
 *.aab
 src/.DS_Store
+src/Autonovel.Tests/Autonovel.Tests.csproj.lscache
+src/Autonovel/Autonovel.csproj.lscache

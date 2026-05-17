@@ -4,7 +4,7 @@
 
 This document captures the full automated pipeline for generating,
 drafting, and revising a novel from a seed concept. Derived from the
-production of "The Second Son of the House of Bells" (75k words, 23
+production of a reference fantasy novel (75k words, 23
 chapters, 5 revision cycles).
 
 The goal: a user provides a seed concept. Everything else is automated.
