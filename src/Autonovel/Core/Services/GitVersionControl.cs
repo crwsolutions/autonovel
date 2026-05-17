@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 
 namespace Autonovel.Core.Services;
 
@@ -66,12 +67,36 @@ public class GitVersionControl : IVersionControl
         return result.Trim();
     }
 
+    private static string BuildGitArguments(string[] args)
+    {
+        // Properly escape arguments for command-line parsing.
+        // Arguments containing spaces, quotes, or special chars need quoting.
+        var result = new StringBuilder();
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (i > 0) result.Append(' ');
+            var arg = args[i];
+            // Escape embedded double-quotes by doubling them
+            if (arg.Contains('"') || arg.Contains(' ') || arg.Contains(':') || arg.Contains('='))
+            {
+                result.Append('"');
+                result.Append(arg.Replace("\"", "\"\""));
+                result.Append('"');
+            }
+            else
+            {
+                result.Append(arg);
+            }
+        }
+        return result.ToString();
+    }
+
     private async Task<string> RunGitAsync(string[] args, CancellationToken ct)
     {
         var startInfo = new ProcessStartInfo
         {
             FileName = "git",
-            Arguments = string.Join(" ", args),
+            Arguments = BuildGitArguments(args),
             WorkingDirectory = _workingDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
