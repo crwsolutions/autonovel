@@ -5,13 +5,13 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Items/">
-    <File Path="canon.md" />
-    <File Path="characters.md" />
-    <File Path="CRAFT.md" />
-    <File Path="outline.md" />
-    <File Path="seed.txt" />
-    <File Path="voice.md" />
-    <File Path="world.md" />
+    <File Path="workspace/canon.md" />
+    <File Path="workspace/characters.md" />
+    <File Path="workspace/CRAFT.md" />
+    <File Path="workspace/outline.md" />
+    <File Path="workspace/seed.txt" />
+    <File Path="workspace/voice.md" />
+    <File Path="workspace/world.md" />
   </Folder>
   <Project Path="src/Autonovel.Tests/Autonovel.Tests.csproj" />
   <Project Path="src/Autonovel/Autonovel.csproj" />
